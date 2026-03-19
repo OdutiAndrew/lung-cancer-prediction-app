@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 st.set_page_config(
     page_title="Lung Cancer Prediction",
     page_icon="🩺",
-    layout="centered"
+    layout="wide"
 )
 
 # -----------------------------
@@ -18,103 +18,157 @@ st.set_page_config(
 model = joblib.load('Oduti_best_model.pkl')
 
 # -----------------------------
-# TITLE
+# SIDEBAR NAVIGATION
 # -----------------------------
-st.title("🩺 Lung Cancer Survival Prediction System")
-st.markdown("Provide patient details below to generate predictions.")
-
-st.markdown("---")
+st.sidebar.title("🧭 Navigation")
+page = st.sidebar.radio("Go to", ["🏠 Home", "🔍 Prediction", "📊 Analytics", "ℹ️ About"])
 
 # -----------------------------
-# INPUT SECTION
+# HOME PAGE
 # -----------------------------
-st.subheader("📝 Patient Information")
+if page == "🏠 Home":
+    st.title("🩺 Lung Cancer Survival Prediction System")
 
-age = st.number_input("Age", 1, 120, 50)
-gender = st.selectbox("Gender", ["Male", "Female"])
-smoking = st.selectbox("Smoking Status", ["Never", "Former", "Current"])
-fatigue = st.selectbox("Fatigue", ["No", "Yes"])
-weight_loss = st.selectbox("Weight Loss", ["No", "Yes"])
+    st.markdown("""
+    ### 🎯 Project Overview
+    This system uses **Machine Learning** to predict lung cancer patient survival.
 
-# -----------------------------
-# ENCODING
-# -----------------------------
-gender = 1 if gender == "Male" else 0
+    ### 🚀 Key Features
+    - Real-time predictions  
+    - Interactive user interface  
+    - Visual analytics dashboard  
 
-smoking = {
-    "Never": 0,
-    "Former": 1,
-    "Current": 2
-}[smoking]
+    ### 🌍 Impact
+    Supports healthcare professionals in making informed decisions.
+    """)
 
-fatigue = 1 if fatigue == "Yes" else 0
-weight_loss = 1 if weight_loss == "Yes" else 0
+    st.info("👉 Use the sidebar to navigate through the application.")
 
 # -----------------------------
-# CREATE INPUT DATA (FIXED)
+# PREDICTION PAGE
 # -----------------------------
-input_data = pd.DataFrame(columns=model.feature_names_in_)
+elif page == "🔍 Prediction":
 
-# Fill all features with default value
-input_data.loc[0] = 0
+    st.title("🔍 Patient Survival Prediction")
 
-# Overwrite important ones
-if 'Age' in input_data.columns:
-    input_data['Age'] = age
+    col1, col2 = st.columns(2)
 
-if 'Gender' in input_data.columns:
-    input_data['Gender'] = gender
+    with col1:
+        age = st.slider("Age", 1, 120, 50)
+        gender = st.selectbox("Gender", ["Male", "Female"])
+        smoking = st.selectbox("Smoking Status", ["Never", "Former", "Current"])
 
-if 'Smoking_Status' in input_data.columns:
-    input_data['Smoking_Status'] = smoking
+    with col2:
+        fatigue = st.selectbox("Fatigue", ["No", "Yes"])
+        weight_loss = st.selectbox("Weight Loss", ["No", "Yes"])
 
-if 'Fatigue' in input_data.columns:
-    input_data['Fatigue'] = fatigue
+    # Encoding
+    gender = 1 if gender == "Male" else 0
+    smoking = {"Never": 0, "Former": 1, "Current": 2}[smoking]
+    fatigue = 1 if fatigue == "Yes" else 0
+    weight_loss = 1 if weight_loss == "Yes" else 0
 
-if 'Weight_Loss' in input_data.columns:
-    input_data['Weight_Loss'] = weight_loss
+    # Create full feature input
+    input_data = pd.DataFrame(columns=model.feature_names_in_)
+    input_data.loc[0] = 0
 
-# -----------------------------
-# PREDICTION
-# -----------------------------
-st.markdown("---")
+    if 'Age' in input_data.columns:
+        input_data['Age'] = age
+    if 'Gender' in input_data.columns:
+        input_data['Gender'] = gender
+    if 'Smoking_Status' in input_data.columns:
+        input_data['Smoking_Status'] = smoking
+    if 'Fatigue' in input_data.columns:
+        input_data['Fatigue'] = fatigue
+    if 'Weight_Loss' in input_data.columns:
+        input_data['Weight_Loss'] = weight_loss
 
-if st.button("🔍 Predict"):
+    st.markdown("---")
 
-    try:
+    if st.button("🚀 Run Prediction"):
+
         prediction = model.predict(input_data)[0]
         proba = model.predict_proba(input_data)[0]
 
-        st.subheader("📊 Prediction Result")
+        col1, col2 = st.columns(2)
 
-        if prediction == 1:
-            st.success("✅ Patient Likely to Survive")
-        else:
-            st.error("⚠️ Patient Less Likely to Survive")
+        with col1:
+            st.subheader("📊 Result")
+            if prediction == 1:
+                st.success("✅ Likely to Survive")
+            else:
+                st.error("⚠️ Less Likely to Survive")
 
-        confidence = max(proba)
-        st.write(f"Confidence Level: {confidence:.2f}")
+            confidence = max(proba)
+            st.metric("Confidence", f"{confidence:.2f}")
 
-        st.progress(float(confidence))
+        with col2:
+            st.subheader("📈 Probability")
+            fig, ax = plt.subplots()
+            ax.bar(['Not Survived', 'Survived'], proba, color=['#ff4b4b', '#4CAF50'])
+            st.pyplot(fig)
 
-        # -----------------------------
-        # VISUALIZATION
-        # -----------------------------
-        st.subheader("📈 Prediction Probability")
+# -----------------------------
+# ANALYTICS PAGE
+# -----------------------------
+elif page == "📊 Analytics":
+
+    st.title("📊 Model Analytics Dashboard")
+
+    st.subheader("Feature Importance")
+
+    try:
+        importance = model.coef_[0]
+        features = model.feature_names_in_
 
         fig, ax = plt.subplots()
-        ax.bar(['Not Survived', 'Survived'], proba, color=['red', 'green'])
-        ax.set_ylabel("Probability")
-        ax.set_title("Model Confidence")
+        ax.barh(features, importance, color='skyblue')
+        ax.set_title("Feature Importance")
 
         st.pyplot(fig)
 
-    except Exception as e:
-        st.error("⚠️ Prediction failed. Please check model compatibility.")
-        st.write(e)
+    except:
+        st.warning("Feature importance not available for this model.")
+
+    st.subheader("Model Performance (Example)")
+
+    models = ['Logistic Regression', 'Random Forest', 'Decision Tree']
+    scores = [0.75, 0.72, 0.69]
+
+    fig2, ax2 = plt.subplots()
+    ax2.bar(models, scores, color='orange')
+    ax2.set_ylabel("Accuracy")
+
+    st.pyplot(fig2)
+
+# -----------------------------
+# ABOUT PAGE
+# -----------------------------
+elif page == "ℹ️ About":
+
+    st.title("ℹ️ About This Project")
+
+    st.markdown("""
+    ### 📚 Course
+    Data Mining, Modelling and Analytics  
+
+    ### 🎯 Objective
+    Predict lung cancer survival using machine learning models.
+
+    ### ⚙️ Technologies Used
+    - Python  
+    - Scikit-learn  
+    - Streamlit  
+
+    ### ⚠️ Disclaimer
+    This application is for academic purposes only and should not replace professional medical advice.
+
+    ### 👨‍💻 Developer
+    Andrew Oduti
+    """)
 
 # -----------------------------
 # FOOTER
 # -----------------------------
 st.markdown("---")
-st.caption("© 2026 Andrew Oduti | MSc Data Science Project")
+st.caption("© 2026 Andrew Oduti | MSc Data Science")
