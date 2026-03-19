@@ -20,30 +20,24 @@ model = joblib.load('Oduti_best_model.pkl')
 # -----------------------------
 # TITLE
 # -----------------------------
-st.title("🩺 Lung Cancer Survival Prediction")
-st.markdown("Provide patient details to predict survival outcome.")
+st.title("🩺 Lung Cancer Survival Prediction System")
+st.markdown("Provide patient details below to generate predictions.")
 
 st.markdown("---")
 
 # -----------------------------
-# INPUT SECTION (FIXED UI)
+# INPUT SECTION
 # -----------------------------
-st.subheader("📝 Enter Patient Information")
+st.subheader("📝 Patient Information")
 
-age = st.number_input("Age", min_value=1, max_value=120, value=50)
-
+age = st.number_input("Age", 1, 120, 50)
 gender = st.selectbox("Gender", ["Male", "Female"])
-
 smoking = st.selectbox("Smoking Status", ["Never", "Former", "Current"])
-
-tumor_size = st.number_input("Tumor Size", min_value=0.0, max_value=10.0, value=2.5)
-
 fatigue = st.selectbox("Fatigue", ["No", "Yes"])
-
 weight_loss = st.selectbox("Weight Loss", ["No", "Yes"])
 
 # -----------------------------
-# ENCODING (VERY IMPORTANT)
+# ENCODING
 # -----------------------------
 gender = 1 if gender == "Male" else 0
 
@@ -57,19 +51,31 @@ fatigue = 1 if fatigue == "Yes" else 0
 weight_loss = 1 if weight_loss == "Yes" else 0
 
 # -----------------------------
-# MATCH TRAINING FEATURES (FIX)
+# CREATE INPUT DATA (FIXED)
 # -----------------------------
-input_data = pd.DataFrame({
-    'Age': [age],
-    'Gender': [gender],
-    'Smoking_Status': [smoking],
-    'Tumor_Size': [tumor_size],
-    'Fatigue': [fatigue],
-    'Weight_Loss': [weight_loss]
-})
+input_data = pd.DataFrame(columns=model.feature_names_in_)
+
+# Fill all features with default value
+input_data.loc[0] = 0
+
+# Overwrite important ones
+if 'Age' in input_data.columns:
+    input_data['Age'] = age
+
+if 'Gender' in input_data.columns:
+    input_data['Gender'] = gender
+
+if 'Smoking_Status' in input_data.columns:
+    input_data['Smoking_Status'] = smoking
+
+if 'Fatigue' in input_data.columns:
+    input_data['Fatigue'] = fatigue
+
+if 'Weight_Loss' in input_data.columns:
+    input_data['Weight_Loss'] = weight_loss
 
 # -----------------------------
-# PREDICTION BUTTON
+# PREDICTION
 # -----------------------------
 st.markdown("---")
 
@@ -87,20 +93,24 @@ if st.button("🔍 Predict"):
             st.error("⚠️ Patient Less Likely to Survive")
 
         confidence = max(proba)
-        st.write(f"Confidence: {confidence:.2f}")
+        st.write(f"Confidence Level: {confidence:.2f}")
 
         st.progress(float(confidence))
 
-        # Chart
+        # -----------------------------
+        # VISUALIZATION
+        # -----------------------------
+        st.subheader("📈 Prediction Probability")
+
         fig, ax = plt.subplots()
         ax.bar(['Not Survived', 'Survived'], proba, color=['red', 'green'])
         ax.set_ylabel("Probability")
-        ax.set_title("Prediction Confidence")
+        ax.set_title("Model Confidence")
 
         st.pyplot(fig)
 
     except Exception as e:
-        st.error("⚠️ Prediction failed. Check model features match training data.")
+        st.error("⚠️ Prediction failed. Please check model compatibility.")
         st.write(e)
 
 # -----------------------------
